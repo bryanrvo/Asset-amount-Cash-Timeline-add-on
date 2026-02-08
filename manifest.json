@@ -1,0 +1,32 @@
+{
+  "id": "asset-and-cash-timeline",
+  "name": "Asset amount & Cash Timeline",
+  "version": "1.2.0",
+  "description": "visualize cash balance and asset amounts over time, per account and per transaction",
+  "author": "Bryan",
+  "main": "dist/addon.js",
+  "sdkVersion": "2.0.0",
+  "enabled": true,
+  "permissions": [
+    {
+      "category": "portfolio",
+      "functions": ["getLatestValuations"],
+      "purpose": "Access portfolio holdings to calculate current investment value"
+    },
+    {
+      "category": "financial-planning",
+      "functions": ["getAll", "getAllocations"],
+      "purpose": "Access goals to integrate with investment tracking"
+    },
+    {
+      "category": "accounts",
+      "functions": ["getAll"],
+      "purpose": "Access accounts information to display in the calendar"
+    },
+    {
+      "category": "ui",
+      "functions": ["sidebar.addItem", "router.add"],
+      "purpose": "Access UI components to display progress"
+    }
+  ]
+}
