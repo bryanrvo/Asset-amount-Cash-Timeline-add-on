@@ -14,11 +14,6 @@
       "purpose": "Access portfolio holdings to calculate current investment value"
     },
     {
-      "category": "financial-planning",
-      "functions": ["getAll", "getAllocations"],
-      "purpose": "Access goals to integrate with investment tracking"
-    },
-    {
       "category": "accounts",
       "functions": ["getAll"],
       "purpose": "Access accounts information to display in the calendar"
