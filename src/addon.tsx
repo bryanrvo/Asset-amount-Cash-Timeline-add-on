@@ -1,8 +1,8 @@
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { Account, Holding, type AddonContext } from "@wealthfolio/addon-sdk";
+import { Account, DateRange, Holding, type AddonContext } from "@wealthfolio/addon-sdk";
 import {
   Button,
-  ChartConfig,
+  DateRangeSelector,
   EmptyPlaceholder,
   Icons,
   Page,
@@ -16,9 +16,8 @@ import { AccountSelector } from "./components/AccountSelector";
 import { AssetAndCashTimelineChart } from "./components/AssetAndCashTimelineChart";
 import { HoldingsDisplay } from "./components/HoldingsDisplay";
 import { HoldingSelector } from "./components/HoldingSelector";
+import { useTimeLinesAndHoldings } from "./hooks/use-timeline-holdings";
 import { useTrackerProgress } from "./hooks/use-tracker-progress";
-import { buildAssetTimeline } from "./lib/AssetTimeline";
-import { buildCashTimeline } from "./lib/cashTimeline";
 import { HistoryChartData } from "./types";
 
 
@@ -26,113 +25,77 @@ import { HistoryChartData } from "./types";
 // Main Investment Target Tracker component
 function AssetAmountAndCashTimeline({ ctx }: { ctx: AddonContext }) {
 
-  const [isChartHovered, setIsChartHovered] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
   const [holding, setHolding] = useState<Holding | null>(null);
-  const [holdings, setHoldings] = useState<Holding[]>([])
-
-  const [BaseCurrency, setbaseCurrency] = useState<string>('EUR')
-
-  const { accounts, isLoading, error } = useTrackerProgress({ ctx });
 
   const [AssetTimelineData, setAssetTimelineData] = useState<HistoryChartData[]>([])
   const [CashTimeLineData, setCashTimeLineData] = useState<HistoryChartData[]>([])
+  const [value, setValue] = useState<DateRange | undefined>();
 
 
-  async function loadCashTimeLine(accountId: string, baseCurrency: string) {
-    const cashTimeline = await buildCashTimeline({
-      ctx,
-      accountId: accountId,
-      BaseCurrency: baseCurrency
-    })
+  const { accounts: accounts, rates, activities, BaseCurrency, isLoading :isLoadingTrackerProgress, error: trackerProgressError } = useTrackerProgress({ ctx });
+  const { holdings,  AssetTimelineData: AssetTimelineDataRaw = [], CashTimeLineData: CashTimeLineDataRaw = [], isLoading: isLoadingTimeLinesAndHoldings, error: TimeLinesAndHoldingsError } = useTimeLinesAndHoldings({ ctx, account, holding, activities, BaseCurrency, rates })
+
+  const isLoading = isLoadingTrackerProgress // || isLoadingTimeLinesAndHoldings
+  const error = trackerProgressError || TimeLinesAndHoldingsError
+
+  if (!account && !isLoadingTrackerProgress) {
+    setAccount(accounts.find((account: Account) => account.id == "TOTAL") || accounts[0]);
+  }
+
+  if (!value && !isLoadingTrackerProgress && CashTimeLineDataRaw.length > 0) {
+    setValue({ from: new Date("2000-01-01"), to: new Date() })
+  }
+
+
+  useEffect(() => {
+  if (AssetTimelineDataRaw.length > 0 && value !== undefined) {
+    const filteredDataAsset = AssetTimelineDataRaw.filter((item) => {
+      return new Date(item.date) >= value?.from;
+    });
+    console.log('filteredDataAsset', filteredDataAsset.length)
+
+    // Doe hier iets met de gefilterde data, bijvoorbeeld opslaan in een nieuwe variabele
+    setAssetTimelineData(filteredDataAsset); // Voeg de gefilterde data toe aan de statefilteredData;
+  }
+  if (CashTimeLineDataRaw.length > 0 && value !== undefined) {
+    console.log(value?.from)
+    console.log(new Date(CashTimeLineDataRaw[0].date))
+    const filteredDataCash = CashTimeLineDataRaw.filter((item) => {
+      return new Date(item.date) >= value?.from;
+    });
+    // Doe hier iets met de gefilterde data, bijvoorbeeld opslaan in een nieuwe variabele
+    setCashTimeLineData(filteredDataCash); // Voeg de gefilterde data toe aan de statefilteredData;
+  }
+  if (!holding){
     setAssetTimelineData([])
-    setCashTimeLineData(cashTimeline)
   }
+}, [value, AssetTimelineDataRaw.length, account, (holding && AssetTimelineDataRaw)]);
 
-  async function loadAssetTimeLine(accountId: string, assetId: string) {
-    const assetTimeline = await buildAssetTimeline({
-      ctx,
-      accountId: accountId,
-      assetId: assetId
-    })
-
-    setAssetTimelineData(assetTimeline)
-  }
-
-  useEffect(() => {
-    async function loadBaseCurrency() {
-      const settings = await ctx.api.settings.get();
-      setbaseCurrency(settings.baseCurrency)
-    }
-
-  loadBaseCurrency()
-  }, [])
-
-  useEffect(() => {
-    if (!account) return;
-      loadCashTimeLine(account.id, BaseCurrency)
-  }, [account]);
-
-
-  useEffect(() => {
-    if (!account || !holding) return;
-      const holdingsymbol = holding.instrument?.symbol ?? holding.id
-      loadAssetTimeLine(account.id, holdingsymbol)
-  }, [account, holding]);
-
-
-  useEffect(() => {
-
-  async function loadHoldings() {
-    if (!account) return;
-    const holdings = await ctx.api.portfolio.getHoldings(account.id);
-    const filteredHoldings = holdings.filter(
-      holding => !holding.id.includes("CASH")
-    );
-
-    setHoldings(filteredHoldings);
-  }
-
-  loadHoldings();
-  }, [account]);
 
   // Get balance privacy state
   const { isBalanceHidden } = useBalancePrivacy();
-
-  const chartConfig = {
-    totalValue: {
-      label: "Total Value",
-    },
-    netContribution: {
-      label: "Net Contribution",
-    },
-  } satisfies ChartConfig;
 
 
   const headerDescription = "Track Cash Balance and Asset Balances: Monitor and manage your financial assets with ease.";
 
   const headerActions =
-    accounts.length > 0 ? (
-      <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-        {account && (
-        <>
-          <AccountSelector
-            accounts={accounts}
-            selectedAccount={account}
-            onAccountSelect={(acc) => {
-              setAccount(acc);
-              setHolding(null); // reset holding bij account switch
-            }}
-          />
-          <HoldingSelector
-            holdings={holdings}
-            selectedHolding={holding}
-            onHoldingSelect={setHolding}
-          />
-        </>
-        )}
-      </div>
-    ) : null;
+    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+        <DateRangeSelector value={value} onChange={setValue} />
+        <AccountSelector
+          accounts={accounts}
+          selectedAccount={account}
+          onAccountSelect={(acc) => {
+            setAccount(acc);
+            setHolding(null); // reset holding bij account switch
+          }}
+        />
+        <HoldingSelector
+          holdings={holdings}
+          selectedHolding={holding}
+          onHoldingSelect={setHolding}
+        />
+    </div>
 
   const header = (
     <PageHeader actions={headerActions}>
@@ -146,7 +109,7 @@ function AssetAmountAndCashTimeline({ ctx }: { ctx: AddonContext }) {
     </PageHeader>
   );
 
-  if (isLoading) {
+  if (isLoading || BaseCurrency === undefined) {
     return (
       <Page>
         {header}
@@ -178,8 +141,6 @@ function AssetAmountAndCashTimeline({ ctx }: { ctx: AddonContext }) {
     );
   }
 
-  // Show empty placeholder if no goals exist
-
   if (!accounts || accounts.length === 0) {
     return (
       <Page>
@@ -206,27 +167,23 @@ function AssetAmountAndCashTimeline({ ctx }: { ctx: AddonContext }) {
     );
   }
 
-  if (!account) {
-    return (
-      <Page>
+  if (CashTimeLineDataRaw.length === 0 && AssetTimelineDataRaw.length === 0) {
+        return (
+          <Page>
         {header}
         <PageContent>
           <div className="flex justify-center">
             <div className="w-full max-w-lg">
               <EmptyPlaceholder className="mt-16">
-                <EmptyPlaceholder.Icon name="AlertTriangle" />
-                <EmptyPlaceholder.Title>No Account Selected</EmptyPlaceholder.Title>
+                <EmptyPlaceholder.Icon name="Activity" />
+                <EmptyPlaceholder.Title>No data found</EmptyPlaceholder.Title>
                 <EmptyPlaceholder.Description>
-                  You haven&apos;t select any accounts yet. Select your first accounts to start
+                    There are no transactions associated with this account. Please add transactions to see data.
                 </EmptyPlaceholder.Description>
-                <AccountSelector
-                  accounts={accounts}
-                  selectedAccount={account}
-                  onAccountSelect={(acc) => {
-                    setAccount(acc);
-                    setHolding(null); // reset holding bij account switch
-                  }}
-                />
+                <Button onClick={() => ctx.api.navigation.navigate("/activities")}>
+                    <Icons.Plus className="mr-2 h-4 w-4" />
+                    Create Your First Activitie
+                </Button>
               </EmptyPlaceholder>
             </div>
           </div>
@@ -235,16 +192,17 @@ function AssetAmountAndCashTimeline({ ctx }: { ctx: AddonContext }) {
     );
   }
 
-
   return (
     <Page>
       {header}
       <div className="grid gap-4 md:grid-cols-3">
         <AssetAndCashTimelineChart
+          ctx={ctx}
           classname="md:col-span-2"
           HeaderTilte="Cash Timeline"
           data={CashTimeLineData}
           isBalanceHidden={isBalanceHidden}
+          RawDataLengteEmpty={CashTimeLineDataRaw.length === 0}
         />
         <HoldingsDisplay
           ctx={ctx}
@@ -253,10 +211,12 @@ function AssetAmountAndCashTimeline({ ctx }: { ctx: AddonContext }) {
           onHoldingSelect={setHolding}
         />
         <AssetAndCashTimelineChart
+          ctx={ctx}
           classname="md:col-span-2"
           HeaderTilte="Asset Timeline"
           data={AssetTimelineData}
           isBalanceHidden={isBalanceHidden}
+          RawDataLengteEmpty={AssetTimelineDataRaw.length === 0}
         />
       </div>
     </Page>
@@ -284,7 +244,7 @@ export default function enable(ctx: AddonContext) {
     const sidebarItem = ctx.sidebar.addItem({
       id: "asset-and-cash-timeline" ,
       label: "Asset amount & Cash Timeline",
-      icon: <Icons.Goals className="h-5 w-5" />,
+      icon: <Icons.Monitor className="h-5 w-5" />,
       route: "/addon/asset-and-cash-timeline",
       order: 200,
     });

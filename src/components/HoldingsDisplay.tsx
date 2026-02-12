@@ -35,7 +35,7 @@ export function HoldingsDisplay({ctx, holdings, baseCurrency, onHoldingSelect }:
     }
 
     return (
-        <Card className="md:col-span-1 md:row-span-2">
+        <Card className="md:col-span-1 md:row-span-2" style={{ height: '100%', maxHeight: '950px', overflow: 'auto' }}>
             <CardContent className="px-4 pt-4 pb-2">
                   <div className="space-y-4">
                     {holdings.map((holding) => {

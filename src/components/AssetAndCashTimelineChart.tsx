@@ -1,5 +1,6 @@
 
 
+import { AddonContext } from "@wealthfolio/addon-sdk";
 import { Card, CardContent, CardHeader, CardTitle, ChartConfig, ChartContainer, EmptyPlaceholder } from "@wealthfolio/ui";
 import { useState } from "react";
 import { Area, AreaChart, Tooltip, YAxis } from "recharts";
@@ -7,13 +8,15 @@ import { HistoryChartData, TooltipBaseProps } from "../types";
 import { CustomTooltip } from "./customTooltip";
 
 interface AssetAndCashTimelineChartProps {
+  ctx: AddonContext;
   classname: string;
   HeaderTilte: string;
   data: HistoryChartData[];
   isBalanceHidden : boolean;
+  RawDataLengteEmpty: boolean;
 }
 
-export function AssetAndCashTimelineChart({classname, HeaderTilte, data, isBalanceHidden }: AssetAndCashTimelineChartProps) {
+export function AssetAndCashTimelineChart({ctx, classname, HeaderTilte, data, isBalanceHidden, RawDataLengteEmpty }: AssetAndCashTimelineChartProps) {
 
     const [isChartHovered, setIsChartHovered] = useState(false);
 
@@ -26,18 +29,34 @@ export function AssetAndCashTimelineChart({classname, HeaderTilte, data, isBalan
         },
       } satisfies ChartConfig;
 
+    if ((!data || data.length === 0) && !RawDataLengteEmpty){
+        return (
+            <Card className={classname}>
+                <CardContent className="px-4 pt-4 pb-2">
+                    <EmptyPlaceholder className="mx-auto flex max-w-[420px] items-center justify-center">
+                        <EmptyPlaceholder.Icon name="Clock" />
+                        <EmptyPlaceholder.Title>No transactions found within selected time range</EmptyPlaceholder.Title>
+                        <EmptyPlaceholder.Description>
+                            Please select a different time range to see data.
+                        </EmptyPlaceholder.Description>
+                    </EmptyPlaceholder>
+                </CardContent>
+            </Card>)
+    }
+
 
     if (!data || data.length === 0){
-        return (<Card className={classname}>
-                    <CardContent className="px-4 pt-4 pb-2">
-                        <EmptyPlaceholder className="mx-auto flex max-w-[420px] items-center justify-center">
-                            <EmptyPlaceholder.Icon name="TrendingUp" />
-                            <EmptyPlaceholder.Title>No data available</EmptyPlaceholder.Title>
-                            <EmptyPlaceholder.Description>
-                                You haven&apos;t select any holdings yet. Select an holding to get started.
-                            </EmptyPlaceholder.Description>
-                        </EmptyPlaceholder>
-                    </CardContent>
+        return (
+            <Card className={classname}>
+                <CardContent className="px-4 pt-4 pb-2">
+                    <EmptyPlaceholder className="mx-auto flex max-w-[420px] items-center justify-center">
+                        <EmptyPlaceholder.Icon name="Wallet" />
+                        <EmptyPlaceholder.Title>No holding selected</EmptyPlaceholder.Title>
+                        <EmptyPlaceholder.Description>
+                            Please select a different holding or create a new one to see data.
+                        </EmptyPlaceholder.Description>
+                    </EmptyPlaceholder>
+                </CardContent>
             </Card>)
     }
 

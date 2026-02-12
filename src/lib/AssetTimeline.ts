@@ -1,20 +1,22 @@
-import { ActivityDetails, AddonContext } from '@wealthfolio/addon-sdk';
+import { ActivityDetails } from '@wealthfolio/addon-sdk';
 import { HistoryChartData } from '../types';
 
 interface AssetTimeLineOptions {
-  ctx: AddonContext
   accountId : string
   assetId: string
+  activities: ActivityDetails[]
 }
 
-export async function buildAssetTimeline({ ctx, accountId, assetId }: AssetTimeLineOptions): Promise<HistoryChartData[]> {
+export async function buildAssetTimeline({ accountId, assetId, activities }: AssetTimeLineOptions): Promise<HistoryChartData[]> {
 
-  const activities: ActivityDetails[] = await ctx.api.activities.getAll(accountId)
+
+  const activitiesFilterd = accountId === "TOTAL" ? activities : activities.filter(t => t.accountId === accountId);
+
 
   let totalQuantity = 0
   const rawTimeline: HistoryChartData[] = []
 
-  const sorted = activities
+  const sorted = activitiesFilterd
     .filter(t => t.assetId === assetId && (t.activityType === 'BUY' || t.activityType === 'SELL' || t.activityType === 'ADD_HOLDING' || t.activityType === 'REMOVE_HOLDING'))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 

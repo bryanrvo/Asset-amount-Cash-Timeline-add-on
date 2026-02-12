@@ -10,18 +10,33 @@
   "permissions": [
     {
       "category": "portfolio",
-      "functions": ["getLatestValuations"],
+      "functions": ["getHoldings"],
+      "purpose": "Access portfolio holdings to analyze fees and expenses"
+    },
+    {
+      "category": "activities",
+      "functions": ["getAll" ],
       "purpose": "Access portfolio holdings to calculate current investment value"
+    },
+    {
+      "category": "exchangeRates",
+      "functions": ["getAll"],
+      "purpose": "Access to exchange rates and currency data"
+    },
+    {
+      "category": "settings",
+      "functions": ["get"],
+      "purpose": "Access to application settings to get the base currency"
+    },
+    {
+      "category": "ui",
+      "functions": ["sidebar.addItem", "router.add", "onDisable"],
+      "purpose": "Access UI components to display progress"
     },
     {
       "category": "accounts",
       "functions": ["getAll"],
       "purpose": "Access accounts information to display in the calendar"
-    },
-    {
-      "category": "ui",
-      "functions": ["sidebar.addItem", "router.add"],
-      "purpose": "Access UI components to display progress"
     }
   ]
 }

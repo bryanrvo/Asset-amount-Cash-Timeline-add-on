@@ -1,22 +1,21 @@
-import { ActivityDetails, AddonContext, ExchangeRate } from '@wealthfolio/addon-sdk';
+import { ActivityDetails, ExchangeRate } from '@wealthfolio/addon-sdk';
 import { HistoryChartData } from '../types';
 
 interface CashTimeLineOptions {
-  ctx: AddonContext;
   accountId : string;
   BaseCurrency : string;
+  rates: ExchangeRate[];
+  activities: ActivityDetails[]
 }
 
-export async function buildCashTimeline({ ctx, accountId, BaseCurrency }: CashTimeLineOptions) {
+export async function buildCashTimeline({ accountId, BaseCurrency, rates, activities }: CashTimeLineOptions) {
 
-  const activities: ActivityDetails[] = await ctx.api.activities.getAll(accountId)
-
-  const rates: ExchangeRate[] = await ctx.api.exchangeRates.getAll();
+  const activitiesFilterd = accountId === "TOTAL" ? activities : activities.filter(t => t.accountId === accountId);
 
   let cash = 0
   const rawTimeline: HistoryChartData[] = []
 
-  const sorted = activities.sort(
+  const sorted = activitiesFilterd.sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   )
 
@@ -35,14 +34,12 @@ export async function buildCashTimeline({ ctx, accountId, BaseCurrency }: CashTi
         (a.currency === rates[i].toCurrency && rates[i].fromCurrency === BaseCurrency)
       ) {
         rateIndex = i;
-        console.log(rateIndex)
         break;
       }
     }
 
     if (rateIndex !== -1) {
       rate = rates[rateIndex].rate;
-      console.log(rate)
     } else {
 
       rate = 1;
