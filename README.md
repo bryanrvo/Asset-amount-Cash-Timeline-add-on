@@ -21,7 +21,6 @@ This add-on lets you track your cash balance and asset accumulation over time, w
 
 ## How It Works
 
-## How It Works
 
 1. **Automatic Account Selection**  
    All accounts are selected by default to provide a complete overview of your portfolio performance.
